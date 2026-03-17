@@ -210,7 +210,7 @@ def copy_source_to_destination(src,dst):
                 os.mkdir(dst_path)
             copy_source_to_destination(src_path,dst_path)
 
-def generate_page(from_path,template_path,dest_path):
+def generate_page(from_path,template_path,dest_path,basepath):
     print(f"Generating page from {from_path} to {dest_path} using {template_path}")
     file = open(from_path,"r")
     markdown = file.read()
@@ -226,6 +226,8 @@ def generate_page(from_path,template_path,dest_path):
     template = template.replace("{{ Title }}",title)
     template = template.replace("{{ Content }}",html)
 
+    template = template.replace('href="/',f'href="{basepath}')
+    template = template.replace('src="/',f'src="{basepath}')
     dir_path = os.path.dirname(dest_path)
     os.makedirs(dir_path,exist_ok=True)
 
@@ -234,7 +236,7 @@ def generate_page(from_path,template_path,dest_path):
     file.close
 
 
-def generate_pages_recursive(dir_path_content,template_path,dest_dir_path):
+def generate_pages_recursive(dir_path_content,template_path,dest_dir_path,basepath):
     entries = os.listdir(dir_path_content)
     os.makedirs(dest_dir_path,exist_ok=True)
     for item in entries:
@@ -243,7 +245,7 @@ def generate_pages_recursive(dir_path_content,template_path,dest_dir_path):
         
         if os.path.isfile(src_path):
             if src_path.endswith(".md"):
-                generate_page(src_path,template_path,dst_path.replace(".md",".html"))
+                generate_page(src_path,template_path,dst_path.replace(".md",".html"),basepath)
         else:
             os.makedirs(dst_path,exist_ok=True)
-            generate_pages_recursive(src_path,template_path,dst_path)
+            generate_pages_recursive(src_path,template_path,dst_path,basepath)
