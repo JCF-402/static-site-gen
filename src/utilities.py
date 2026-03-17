@@ -100,6 +100,12 @@ def markdown_to_html_node(markdown):
         block_nodes.append(html_node)
     return ParentNode("div",block_nodes)
 
+def extract_title(markdown):
+    title = markdown.split("\n")
+    title = [item for item in title if item != ""]
+    if not title[0].startswith("# "):
+        raise Exception("File does not begin with h1 header type")
+    return title[0].removeprefix("# ").strip()
 
 def block_to_HTML_node(block):
     block_type = block_to_block(block)
@@ -119,9 +125,8 @@ def block_to_HTML_node(block):
         parents = handle_lists(block)
         return ParentNode("ul",parents)
     elif block_type == BlockType.CODE:
-        block = block.removeprefix("```")
-        block = block.removesuffix("```")
-        block = block.lstrip("\n")
+        block = handle_code(block)
+        print(block)
         code_block = TextNode(block,TextType.CODE)
         child = text_node_to_html_node(code_block)
         return ParentNode("pre",[child])
@@ -175,18 +180,70 @@ def handle_quotes(block):
     new_list = [line.removeprefix("> ") for line in new_list ]
     return " ".join(new_list)
 
+def handle_code(block):
+        block = block.removeprefix("```")
+        block = block.removesuffix("```")
+        block = block.split("\n")
+        block = [item.strip() for item in block if item != ""]
+        return "\n".join(block)
+
+def del_and_create_dst(dst):
+    if os.path.exists(dst):
+        print(f"Deleting {dst} ")
+        shutil.rmtree(dst)
+    print(f"Creating directory {dst}")
+    os.mkdir(dst)
+
 def copy_source_to_destination(src,dst):
-    dir = os.listdir(src)
     if not os.path.exists(src):
         raise Exception(f"Path: {src} not found")
-    if not os.path.exists(dst):
-        raise Exception(f"Path: {dst} not found")
-    print(f"Deleting {dst} ")
-    shutil.rmtree(dst)
+    dir = os.listdir(src)
 
-    if not os.path.isfile(dst):
-        os.mkdir(dst)
+    for item in dir:
+        src_path = os.path.join(src,item)
+        dst_path = os.path.join(dst,item)
+        if os.path.isfile(src_path):
+            print(f"Copying {src_path} to {dst_path}")
+            shutil.copy(src_path,dst_path)
+        else:
+            if not os.path.exists(dst_path):
+                os.mkdir(dst_path)
+            copy_source_to_destination(src_path,dst_path)
 
-    print(f"Copying {src} to {dst}")
-    shutil.copy(dir[0])
-    copy_source_to_destination(dir[1:])
+def generate_page(from_path,template_path,dest_path):
+    print(f"Generating page from {from_path} to {dest_path} using {template_path}")
+    file = open(from_path,"r")
+    markdown = file.read()
+    file.close()
+    file = open(template_path,"r")
+    template = file.read()
+    file.close()
+
+    html = markdown_to_html_node(markdown).to_html()
+
+    title = extract_title(markdown)
+
+    template = template.replace("{{ Title }}",title)
+    template = template.replace("{{ Content }}",html)
+
+    dir_path = os.path.dirname(dest_path)
+    os.makedirs(dir_path,exist_ok=True)
+
+    file = open(dest_path,"w")
+    file.write(template)
+    file.close
+
+
+def generate_pages_recursive(dir_path_content,template_path,dest_dir_path):
+    entries = os.listdir(dir_path_content)
+    os.makedirs(dest_dir_path,exist_ok=True)
+    for item in entries:
+        src_path = os.path.join(dir_path_content,item)
+        dst_path = os.path.join(dest_dir_path,item)
+        
+        if os.path.isfile(src_path):
+            if src_path.endswith(".md"):
+                generate_page(src_path,template_path,dst_path.replace(".md",".html"))
+        else:
+            os.makedirs(dst_path,exist_ok=True)
+            generate_pages_recursive(src_path,template_path,dst_path)

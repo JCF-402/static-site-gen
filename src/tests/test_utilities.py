@@ -2,7 +2,7 @@ import unittest
 from textnode import TextNode, TextType
 from utilities import (
     extract_markdown_images, extract_markdown_links, split_nodes_images, split_nodes_link,text_to_textnodes,markdown_to_blocks,
-    markdown_to_html_node
+    markdown_to_html_node, extract_title
 )
 
 class TestExtractImages(unittest.TestCase):
@@ -119,19 +119,46 @@ This is another paragraph with _italic_ text and `code` here
             "<div><p>This is <b>bolded</b> paragraph text in a p tag here</p><p>This is another paragraph with <i>italic</i> text and <code>code</code> here</p></div>",
         )
 
-def test_codeblock(self):
-    md = """
-```
-This is text that _should_ remain
-the **same** even with inline stuff
-```
-"""
+    def test_codeblock(self):
+        md = """
+    ```
+    This is text that _should_ remain
+    the **same** even with inline stuff
+    ```
+    """
 
-    node = markdown_to_html_node(md)
-    html = node.to_html()
-    self.assertEqual(
-        html,
-        "<div><pre><code>This is text that _should_ remain\nthe **same** even with inline stuff\n</code></pre></div>",
-    )
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(
+            html,
+            "<div><pre><code>This is text that _should_ remain\nthe **same** even with inline stuff\n</code></pre></div>",
+        )
+
+class TestExtractTitle(unittest.TestCase):
+    def test_extract_title(self):
+        markdown = """
+# This is a title
+
+This is a paragraph below the title.
+
+
+"""
+        self.assertEqual(extract_title(markdown),"This is a title")
+
+        markdown = """# This is a title
+
+This is a paragraph.
+
+"""
+        self.assertEqual(extract_title(markdown),"This is a title")
+
+        markdown = """
+## This is not a title
+
+This is a paragraph.
+
+"""
+        with self.assertRaises(Exception):
+            extract_title(markdown)
 if __name__ == "__main__":
     unittest.main()
