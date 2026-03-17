@@ -1,8 +1,7 @@
 
-from textnode import TextNode
+from utilities import copy_source_to_destination
 
 def main():
-    dummy = TextNode("TestText","bold","link")
-    print(dummy)
+    copy_source_to_destination("static","public")
 
 main()
